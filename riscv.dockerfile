@@ -1,5 +1,5 @@
 FROM ubuntu:18.04
-MAINTAINER Yutaka Matsubara <yutaka@ertl.jp>
+LABEL maintainer="Yutaka Matsubara <yutaka@ertl.jp>""
 LABEL Description="Image for building and debugging embedded applications for RISC-V"
 
 ENV RISCV=/opt/riscv
@@ -15,9 +15,13 @@ RUN apt install -y git
 RUN git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
 RUN cd riscv-gnu-toolchain && ./configure --prefix=/opt/riscv && make 
 
-# download qemu v5.0.0
+# renode
+
+
 RUN git clone https://git.qemu.org/git/qemu.git
 RUN cd qemu && git checkout refs/tags/v5.0.0 && git submodule init && git submodule update --recursive
 RUN cd qemu && ./configure --target-list=riscv64-softmmu,riscv32-softmmu && make
+
+
 
 WORKDIR /work
