@@ -1,8 +1,6 @@
-FROM ubuntu:14.04
+FROM ubuntu:18.04
 MAINTAINER Yutaka Matsubara <yutaka@ertl.jp>
 LABEL Description="Image for building and debugging embedded applications for RISC-V"
-
-FROM ubuntu:18.04
 
 ENV RISCV=/opt/riscv
 ENV PATH=$RISCV/bin:$PATH
