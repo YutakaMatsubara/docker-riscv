@@ -1,5 +1,5 @@
 FROM ubuntu:18.04
-MAINTAINER Yutaka Matsubara <yutaka@ertl.jp>
+LABEL MAINTAINER Yutaka Matsubara <yutaka@ertl.jp>
 LABEL Description="Image for building and debugging embedded applications for RISC-V"
 
 ENV RISCV=/opt/riscv
