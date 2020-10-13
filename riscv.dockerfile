@@ -7,12 +7,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # install main dependencies and some useful tools
 RUN apt update
 RUN apt install -y --no-install-recommends ca-certificates sudo wget
-RUN apt install -y gcc libc6-dev pkg-config bridge-utils uml-utilities zlib1g-dev libglib2.0-dev autoconf automake libtool libsdl1.2-dev libpixman-1-dev cmake
+RUN apt install -y gcc libc6-dev pkg-config bridge-utils uml-utilities zlib1g-dev libglib2.0-dev autoconf automake libtool libsdl1.2-dev libpixman-1-dev cmake 
 RUN apt install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev git
-RUN apt install -y git
 
 # for cfg
-RUN apt install -y make lib32stdc++6 lib32z1
+RUN apt install -y make lib32stdc++6 lib32z1 libc6-dev-i386 
 
 RUN rm -rf /var/lib/apt/lists/*
 RUN apt autoclean autoremove
@@ -34,17 +33,18 @@ RUN echo ${userName}:SecCamp2020 | chpasswd
 USER ${userName}
 ENV HOME /home/${userName}
 WORKDIR /home/${userName}
-ENV RISCV=${HOME}/riscv
+ENV RISCV=/opt/riscv
 ENV PATH=$RISCV/bin:$PATH
 
-# gnu toolchain
+# gnu toolchain for rv32 and rv64
 RUN git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
-RUN cd riscv-gnu-toolchain && ./configure --prefix=${RISCV} && make  
+RUN cd riscv-gnu-toolchain && ./configure --prefix=${RISCV} --with-arch=rv32gc --with-abi=ilp32 && sudo make
+RUN cd riscv-gnu-toolchain && sudo make clean && ./configure --prefix=${RISCV} && sudo make
 
 # qemu v5.0.0
 RUN git clone https://git.qemu.org/git/qemu.git
 RUN cd qemu && git checkout refs/tags/v5.0.0 && git submodule init && git submodule update --recursive
-RUN cd qemu && ./configure --target-list=riscv64-softmmu,riscv32-softmmu && make
+RUN cd qemu && ./configure --target-list=riscv64-softmmu,riscv32-softmmu && make && sudo make install
 
 # renode
 ARG RENODE_VERSION=1.10.1
@@ -57,7 +57,7 @@ RUN sudo rm ./renode_${RENODE_VERSION}_amd64.deb
 RUN sudo rm -rf /var/lib/apt/lists/*
 RUN pip3 install -r /opt/renode/tests/requirements.txt --no-cache-dir
 
-# TOPPERS/ASP Kernel
+# TOPPERS/ASP Kernelq
 ## download source code
 RUN wget https://www.toppers.jp/download.cgi/asp-1.9.3.tar.gz
 RUN wget https://www.toppers.jp/download.cgi/asp_arch_riscv_gcc-1.9.3.tar.gz
@@ -66,10 +66,29 @@ RUN tar zxvf asp-1.9.3.tar.gz
 RUN tar zxvf asp_arch_riscv_gcc-1.9.3.tar.gz
 RUN gunzip cfg-linux-static-1_9_6.gz; mv cfg-linux-static-1_9_6 asp/cfg; chmod +x asp/cfg
 
-## build kernel
+## build kernel for hifive1
+RUN mv asp/target/hifive1_gcc/Makefile.target asp/target/hifive1_gcc/Makefile.target.bak
+RUN sed -e 's/riscv-none-embed/riscv32-unknown-elf/' asp/target/hifive1_gcc/Makefile.target.bak >> asp/target/hifive1_gcc/Makefile.target
+RUN mkdir asp/obj-hifive1_gcc; \
+    cd asp/obj-hifive1_gcc; \
+    ../configure -T hifive1_gcc -g ../cfg
+RUN mv asp/obj-hifive1_gcc/sample1.h asp/obj-hifive1_gcc/sample1.h.bak 
+RUN sed -e 's/4096/1024/' asp/obj-hifive1_gcc/sample1.h.bak >> asp/obj-hifive1_gcc/sample1.h
+RUN cd asp/obj-hifive1_gcc; make depend; make
+
+## build kernel for k210
 RUN mv asp/target/k210_gcc/Makefile.target asp/target/k210_gcc/Makefile.target.bak
-RUN sed -e 's/riscv-none-embed/riscv64-unknown-elf/' asp/target/k210_gcc/Makefile.target.bak >> asp/target/k210_gcc/Makefile.target
-RUN mkdir asp/obj; \
-    cd asp/obj; \
+RUN sed -e 's/riscv-none-embed/riscv64-unknown-elf/' asp/target/k210_gcc/Makefile.target.bak >> asp/target/k210_gcc/Makefile.target    
+RUN mkdir asp/obj-k210_gcc; \
+    cd asp/obj-k210_gcc; \
     ../configure -T k210_gcc -g ../cfg; \
-    make depend; make
+    make depend; make   
+
+COPY sifive_fe310.resc ${HOME}
+COPY sifive-fe310.repl ${HOME}
+RUN sudo chown ${userName} sifive*
+RUN sudo chgrp ${groupName} sifive*
+
+COPY kendryte_k210.resc ${HOME}
+RUN sudo chown ${userName} kendryte_k210.resc
+RUN sudo chgrp ${groupName} kendryte_k210.resc
