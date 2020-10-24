@@ -1,0 +1,19 @@
+{
+    // Default path to open when attaching to a new container.
+    "workspaceFolder": "/home/seccamp",
+  
+    // An array of extension IDs that specify the extensions to
+    // install inside the container when you first attach to it.
+    "extensions": ["dbaeumer.vscode-eslint"],
+  
+    // Any *default* container specific VS Code settings
+    "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+    },
+  
+    // Container user VS Code should use when connecting
+    "remoteUser": "seccamp",
+  
+    // Set environment variables for VS Code and sub-processes
+    "remoteEnv": { "DISPLAY": "$(hostname):0" }
+  }
